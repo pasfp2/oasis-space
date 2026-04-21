@@ -30,20 +30,18 @@ export const BookingPanel = ({ desk, onReserve, onAutoPick }: Props) => {
       {/* Auto pick CTA */}
       <button
         onClick={onAutoPick}
-        className="group relative overflow-hidden rounded-2xl p-[1px] bg-gradient-to-r from-primary via-secondary to-accent"
+        className="group rounded-2xl glass glass-hover px-5 py-4 flex items-center justify-between border border-border"
       >
-        <div className="rounded-2xl glass-strong px-5 py-4 flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <div className="h-10 w-10 rounded-xl bg-gradient-to-br from-primary to-secondary grid place-items-center">
-              <Sparkles className="h-5 w-5 text-primary-foreground" />
-            </div>
-            <div className="text-left">
-              <p className="font-medium text-sm">Подобрать автоматически</p>
-              <p className="text-xs text-muted-foreground">AI выберет лучшее место</p>
-            </div>
+        <div className="flex items-center gap-3">
+          <div className="h-9 w-9 rounded-xl bg-primary/15 border border-primary/30 grid place-items-center">
+            <Sparkles className="h-4 w-4 text-primary" />
           </div>
-          <Zap className="h-5 w-5 text-primary group-hover:scale-125 transition-transform" />
+          <div className="text-left">
+            <p className="font-medium text-sm">Подобрать автоматически</p>
+            <p className="text-xs text-muted-foreground">AI выберет лучшее место</p>
+          </div>
         </div>
+        <Zap className="h-4 w-4 text-muted-foreground group-hover:text-primary transition-colors" />
       </button>
 
       <div className="h-px bg-gradient-to-r from-transparent via-border to-transparent" />
@@ -54,10 +52,10 @@ export const BookingPanel = ({ desk, onReserve, onAutoPick }: Props) => {
           <div className="flex items-start justify-between">
             <div>
               <p className="text-xs text-muted-foreground">Выбранное место</p>
-              <p className="font-display text-3xl font-bold text-gradient">{desk.label}</p>
+              <p className="font-display text-3xl font-semibold text-foreground mt-0.5">{desk.label}</p>
             </div>
             <div className="glass rounded-full p-2">
-              <MapPin className="h-4 w-4 text-primary" />
+              <MapPin className="h-4 w-4 text-muted-foreground" />
             </div>
           </div>
 
@@ -88,7 +86,7 @@ export const BookingPanel = ({ desk, onReserve, onAutoPick }: Props) => {
               onReserve(desk.id, "manual");
               toast.success(`Место ${desk.label} забронировано`);
             }}
-            className="w-full h-12 rounded-2xl bg-gradient-to-r from-primary to-secondary hover:opacity-90 text-primary-foreground font-semibold border-0 glow-primary"
+            className="w-full h-11 rounded-xl bg-primary hover:bg-primary/90 text-primary-foreground font-medium border-0"
           >
             Забронировать {desk.label}
           </Button>
@@ -112,8 +110,8 @@ interface MyReservationsProps {
 
 export const MyReservations = ({ reservations, onRelease }: MyReservationsProps) => (
   <GlassCard variant="strong" className="p-6">
-    <div className="flex items-center justify-between mb-4">
-      <h3 className="font-display text-lg font-bold">Мои резервации</h3>
+      <div className="flex items-center justify-between mb-4">
+      <h3 className="font-display text-base font-semibold">Мои резервации</h3>
       <span className="glass rounded-full px-2.5 py-0.5 text-xs">{reservations.length}</span>
     </div>
     {reservations.length === 0 ? (
@@ -123,7 +121,7 @@ export const MyReservations = ({ reservations, onRelease }: MyReservationsProps)
         {reservations.map((r) => (
           <div key={r.id} className="glass glass-hover rounded-2xl p-3 flex items-center justify-between">
             <div className="flex items-center gap-3">
-              <div className="h-9 w-9 rounded-xl bg-gradient-to-br from-primary/30 to-secondary/30 grid place-items-center font-display text-xs font-bold">
+              <div className="h-9 w-9 rounded-xl bg-primary/15 border border-primary/30 grid place-items-center font-display text-xs font-semibold text-primary">
                 {r.deskLabel}
               </div>
               <div>
