@@ -19,19 +19,17 @@ interface FloorPlanProps {
 }
 
 const statusStyles: Record<DeskStatus, string> = {
-  available: "bg-success/20 border-success/60 text-success hover:bg-success/30",
-  reserved: "bg-warning/15 border-warning/50 text-warning/90",
-  occupied: "bg-destructive/15 border-destructive/50 text-destructive/80 cursor-not-allowed",
-  mine: "bg-gradient-to-br from-primary/40 to-secondary/40 border-primary text-primary-foreground animate-pulse-glow",
+  available: "bg-foreground/[0.04] border-border text-muted-foreground hover:border-primary/60 hover:text-foreground",
+  reserved: "bg-foreground/[0.03] border-border/60 text-muted-foreground/70",
+  occupied: "bg-foreground/[0.02] border-border/40 text-muted-foreground/40 cursor-not-allowed",
+  mine: "bg-primary/15 border-primary/70 text-primary",
 };
 
 export const FloorPlan = ({ desks, selectedId, onSelect }: FloorPlanProps) => {
   return (
     <div className="relative w-full aspect-[16/10] rounded-3xl overflow-hidden glass-strong p-6">
-      {/* Animated blobs */}
-      <div className="absolute -top-24 -left-24 h-72 w-72 rounded-full bg-primary/30 blur-3xl animate-blob" />
-      <div className="absolute -bottom-24 -right-24 h-72 w-72 rounded-full bg-accent/25 blur-3xl animate-blob" style={{ animationDelay: "5s" }} />
-      <div className="absolute top-1/3 left-1/2 h-60 w-60 rounded-full bg-secondary/20 blur-3xl animate-blob" style={{ animationDelay: "10s" }} />
+      {/* Subtle ambient blob */}
+      <div className="absolute -top-32 -right-32 h-80 w-80 rounded-full bg-primary/10 blur-3xl" />
 
       {/* Grid background */}
       <div
@@ -48,7 +46,7 @@ export const FloorPlan = ({ desks, selectedId, onSelect }: FloorPlanProps) => {
         Open Space · 4 этаж
       </div>
       <div className="absolute top-6 right-6 glass rounded-full px-3 py-1.5 flex items-center gap-2 text-xs">
-        <Coffee className="h-3 w-3 text-accent" />
+        <Coffee className="h-3 w-3 text-muted-foreground" />
         <span className="text-muted-foreground">Кухня рядом</span>
       </div>
 
@@ -71,9 +69,9 @@ export const FloorPlan = ({ desks, selectedId, onSelect }: FloorPlanProps) => {
             onClick={() => onSelect(desk.id)}
             style={{ left: `${desk.x}%`, top: `${desk.y}%` }}
             className={cn(
-              "absolute -translate-x-1/2 -translate-y-1/2 h-14 w-14 rounded-2xl border backdrop-blur-md transition-all duration-300 grid place-items-center group",
+              "absolute -translate-x-1/2 -translate-y-1/2 h-12 w-12 rounded-xl border backdrop-blur-md transition-all duration-200 grid place-items-center",
               statusStyles[desk.status],
-              isSelected && "scale-125 ring-2 ring-primary ring-offset-2 ring-offset-background z-10"
+              isSelected && "scale-110 ring-2 ring-primary/60 ring-offset-2 ring-offset-background z-10"
             )}
           >
             <span className="font-display text-xs font-bold">{desk.label}</span>
@@ -89,10 +87,10 @@ export const FloorPlan = ({ desks, selectedId, onSelect }: FloorPlanProps) => {
       {/* Legend */}
       <div className="absolute bottom-4 left-1/2 -translate-x-1/2 glass rounded-full px-4 py-2 flex items-center gap-4 text-xs">
         {[
-          { c: "bg-success", l: "Свободно" },
-          { c: "bg-warning", l: "Резерв" },
-          { c: "bg-destructive", l: "Занято" },
-          { c: "bg-gradient-to-r from-primary to-secondary", l: "Моё" },
+          { c: "bg-muted-foreground/40 border border-border", l: "Свободно" },
+          { c: "bg-muted-foreground/20 border border-border/60", l: "Резерв" },
+          { c: "bg-muted-foreground/10 border border-border/40", l: "Занято" },
+          { c: "bg-primary border border-primary", l: "Моё" },
         ].map((s) => (
           <div key={s.l} className="flex items-center gap-1.5">
             <span className={cn("h-2 w-2 rounded-full", s.c)} />
