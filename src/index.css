@@ -134,5 +134,4 @@
   .animate-float { animation: float 6s ease-in-out infinite; }
   .animate-pulse-glow { animation: pulse-glow 2s ease-in-out infinite; }
   .animate-blob { animation: blob 20s ease-in-out infinite; }
-  }
 }
