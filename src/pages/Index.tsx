@@ -77,8 +77,8 @@ const Index = () => {
             <p className="text-xs uppercase tracking-[0.3em] text-muted-foreground mb-2">
               Гибкие рабочие места · Live
             </p>
-            <h1 className="font-display text-4xl lg:text-6xl font-bold leading-[1.05]">
-              Найди своё <span className="text-gradient">идеальное</span><br />место за секунды
+            <h1 className="font-display text-4xl lg:text-5xl font-semibold leading-[1.1] tracking-tight">
+              Найди своё <span className="text-primary">идеальное</span><br />место за секунды
             </h1>
           </div>
           <p className="text-sm text-muted-foreground max-w-sm">
