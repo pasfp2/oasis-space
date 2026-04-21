@@ -19,17 +19,18 @@ interface FloorPlanProps {
 }
 
 const statusStyles: Record<DeskStatus, string> = {
-  available: "bg-foreground/[0.04] border-border text-muted-foreground hover:border-primary/60 hover:text-foreground",
-  reserved: "bg-foreground/[0.03] border-border/60 text-muted-foreground/70",
-  occupied: "bg-foreground/[0.02] border-border/40 text-muted-foreground/40 cursor-not-allowed",
-  mine: "bg-primary/15 border-primary/70 text-primary",
+  available: "bg-white/80 border-border text-muted-foreground hover:border-primary hover:text-primary hover:shadow-md",
+  reserved: "bg-warning/15 border-warning/40 text-warning/90",
+  occupied: "bg-muted border-border/60 text-muted-foreground/50 cursor-not-allowed",
+  mine: "bg-primary text-primary-foreground border-primary shadow-lg",
 };
 
 export const FloorPlan = ({ desks, selectedId, onSelect }: FloorPlanProps) => {
   return (
     <div className="relative w-full aspect-[16/10] rounded-3xl overflow-hidden glass-strong p-6">
-      {/* Subtle ambient blob */}
-      <div className="absolute -top-32 -right-32 h-80 w-80 rounded-full bg-primary/10 blur-3xl" />
+      {/* Soft ambient blobs */}
+      <div className="absolute -top-32 -right-32 h-80 w-80 rounded-full bg-primary/15 blur-3xl animate-blob" />
+      <div className="absolute -bottom-32 -left-32 h-80 w-80 rounded-full bg-accent/15 blur-3xl animate-blob" style={{ animationDelay: "6s" }} />
 
       {/* Grid background */}
       <div
@@ -51,7 +52,7 @@ export const FloorPlan = ({ desks, selectedId, onSelect }: FloorPlanProps) => {
       </div>
 
       {/* Meeting room block */}
-      <div className="absolute glass rounded-2xl border-dashed border-border/60" style={{ left: "5%", top: "55%", width: "25%", height: "35%" }}>
+      <div className="absolute rounded-2xl border-2 border-dashed border-border bg-white/40 backdrop-blur-sm" style={{ left: "5%", top: "55%", width: "25%", height: "35%" }}>
         <div className="p-3">
           <p className="text-[10px] uppercase tracking-widest text-muted-foreground">Переговорка</p>
           <p className="font-display text-sm">Aurora</p>
@@ -87,9 +88,9 @@ export const FloorPlan = ({ desks, selectedId, onSelect }: FloorPlanProps) => {
       {/* Legend */}
       <div className="absolute bottom-4 left-1/2 -translate-x-1/2 glass rounded-full px-4 py-2 flex items-center gap-4 text-xs">
         {[
-          { c: "bg-muted-foreground/40 border border-border", l: "Свободно" },
-          { c: "bg-muted-foreground/20 border border-border/60", l: "Резерв" },
-          { c: "bg-muted-foreground/10 border border-border/40", l: "Занято" },
+          { c: "bg-white border border-border", l: "Свободно" },
+          { c: "bg-warning/40 border border-warning/50", l: "Резерв" },
+          { c: "bg-muted border border-border", l: "Занято" },
           { c: "bg-primary border border-primary", l: "Моё" },
         ].map((s) => (
           <div key={s.l} className="flex items-center gap-1.5">
