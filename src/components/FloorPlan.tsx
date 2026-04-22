@@ -1,6 +1,6 @@
 import { cn } from "@/lib/utils";
 import { Coffee } from "lucide-react";
-import type { DeskFeature } from "@/lib/api/types";
+import type { DeskFeature, Zone } from "@/lib/api/types";
 
 export type DeskStatus = "available" | "reserved" | "occupied" | "mine" | "disabled";
 
@@ -17,6 +17,8 @@ interface FloorPlanProps {
   desks: Desk[];
   selectedId: string | null;
   onSelect: (id: string) => void;
+  floorName?: string;
+  zones?: Zone[];
 }
 
 const statusStyles: Record<DeskStatus, string> = {
@@ -27,7 +29,16 @@ const statusStyles: Record<DeskStatus, string> = {
   disabled: "bg-muted/50 border-border/40 text-muted-foreground/40 cursor-not-allowed",
 };
 
-export const FloorPlan = ({ desks, selectedId, onSelect }: FloorPlanProps) => {
+const zoneTypeLabel: Record<Zone["type"], string> = {
+  open_space: "Open Space",
+  meeting_room: "Переговорка",
+  phone_booth: "Phone Booth",
+  quiet_zone: "Тихая зона",
+};
+
+export const FloorPlan = ({ desks, selectedId, onSelect, floorName, zones = [] }: FloorPlanProps) => {
+  const primaryZone = zones[0];
+  const meetingRoom = zones.find((z) => z.type === "meeting_room");
   return (
     <div className="relative w-full aspect-[16/10] rounded-3xl overflow-hidden glass-strong p-6">
       {/* Soft ambient blobs */}
@@ -46,20 +57,27 @@ export const FloorPlan = ({ desks, selectedId, onSelect }: FloorPlanProps) => {
 
       {/* Zone labels */}
       <div className="absolute top-6 left-6 glass rounded-full px-3 py-1 text-[10px] uppercase tracking-widest text-muted-foreground">
-        Open Space · 4 этаж
+        {primaryZone ? `${zoneTypeLabel[primaryZone.type]} · ${primaryZone.name}` : floorName ?? "Этаж"}
       </div>
       <div className="absolute top-6 right-6 glass rounded-full px-3 py-1.5 flex items-center gap-2 text-xs">
         <Coffee className="h-3 w-3 text-muted-foreground" />
-        <span className="text-muted-foreground">Кухня рядом</span>
+        <span className="text-muted-foreground">{floorName ?? "Этаж"}</span>
       </div>
 
-      {/* Meeting room block */}
-      <div className="absolute rounded-2xl border-2 border-dashed border-border bg-white/40 backdrop-blur-sm" style={{ left: "5%", top: "55%", width: "25%", height: "35%" }}>
-        <div className="p-3">
-          <p className="text-[10px] uppercase tracking-widest text-muted-foreground">Переговорка</p>
-          <p className="font-display text-sm">Aurora</p>
+      {/* Meeting room block — only if API reports one */}
+      {meetingRoom && (
+        <div
+          className="absolute rounded-2xl border-2 border-dashed border-border bg-white/40 backdrop-blur-sm"
+          style={{ left: "5%", top: "55%", width: "25%", height: "35%" }}
+        >
+          <div className="p-3">
+            <p className="text-[10px] uppercase tracking-widest text-muted-foreground">
+              {zoneTypeLabel[meetingRoom.type]}
+            </p>
+            <p className="font-display text-sm">{meetingRoom.name}</p>
+          </div>
         </div>
-      </div>
+      )}
 
       {/* Desks */}
       {desks.map((desk) => {

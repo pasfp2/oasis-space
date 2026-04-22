@@ -211,7 +211,13 @@ const Index = () => {
                   Загружаем план этажа…
                 </div>
               ) : (
-                <FloorPlan desks={uiDesks} selectedId={selectedId} onSelect={setSelectedId} />
+                <FloorPlan
+                  desks={uiDesks}
+                  selectedId={selectedId}
+                  onSelect={setSelectedId}
+                  floorName={floor?.name}
+                  zones={floor?.zones}
+                />
               )}
               <div className="space-y-6">
                 <BookingPanel
