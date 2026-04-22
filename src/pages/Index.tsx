@@ -1,33 +1,14 @@
-import { useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import { Header, type View } from "@/components/Header";
-import { FloorPlan, type Desk } from "@/components/FloorPlan";
+import { FloorPlan, type Desk as UIDesk, type DeskStatus as UIDeskStatus } from "@/components/FloorPlan";
 import { BookingPanel, MyReservations } from "@/components/BookingPanel";
 import { StatsBar } from "@/components/StatsBar";
 import { toast } from "sonner";
+import { api, ApiError } from "@/lib/api/client";
+import type { AnalyticsSummary, FloorWithDesks, Reservation } from "@/lib/api/types";
 
-const initialDesks: Desk[] = [
-  { id: "d1", label: "A1", x: 40, y: 18, status: "available", features: ["monitor", "wifi"] },
-  { id: "d2", label: "A2", x: 50, y: 18, status: "available", features: ["monitor"] },
-  { id: "d3", label: "A3", x: 60, y: 18, status: "occupied", features: ["monitor"] },
-  { id: "d4", label: "A4", x: 70, y: 18, status: "available", features: ["wifi"] },
-  { id: "d5", label: "A5", x: 80, y: 18, status: "reserved", features: ["monitor"] },
-  { id: "d6", label: "B1", x: 40, y: 35, status: "available", features: ["quiet"] },
-  { id: "d7", label: "B2", x: 50, y: 35, status: "occupied", features: ["monitor"] },
-  { id: "d8", label: "B3", x: 60, y: 35, status: "available", features: ["monitor", "wifi"] },
-  { id: "d9", label: "B4", x: 70, y: 35, status: "available", features: ["monitor"] },
-  { id: "d10", label: "B5", x: 80, y: 35, status: "available", features: ["wifi"] },
-  { id: "d11", label: "C1", x: 50, y: 70, status: "reserved", features: ["monitor"] },
-  { id: "d12", label: "C2", x: 60, y: 70, status: "available", features: ["quiet"] },
-  { id: "d13", label: "C3", x: 70, y: 70, status: "available", features: ["monitor"] },
-  { id: "d14", label: "C4", x: 80, y: 70, status: "occupied", features: ["monitor"] },
-  { id: "d15", label: "C5", x: 90, y: 70, status: "available", features: ["wifi"] },
-  { id: "d16", label: "D1", x: 50, y: 88, status: "available", features: ["monitor"] },
-  { id: "d17", label: "D2", x: 60, y: 88, status: "available", features: ["monitor"] },
-  { id: "d18", label: "D3", x: 70, y: 88, status: "available", features: ["wifi"] },
-];
-
-interface Reservation {
+interface UIReservation {
   id: string;
   deskId: string;
   deskLabel: string;
@@ -35,39 +16,163 @@ interface Reservation {
   time: string;
 }
 
+const fmtTime = (iso: string) => new Date(iso).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+const fmtDate = (iso: string) => {
+  const d = new Date(iso);
+  const today = new Date();
+  const sameDay = d.toDateString() === today.toDateString();
+  return sameDay ? "Сегодня" : d.toLocaleDateString();
+};
+
+/** Build today's 09:00–18:00 ISO range in the user's local timezone. */
+const buildTodayRange = () => {
+  const from = new Date();
+  from.setHours(9, 0, 0, 0);
+  const to = new Date();
+  to.setHours(18, 0, 0, 0);
+  return { from: from.toISOString(), to: to.toISOString() };
+};
+
+const reservationToUI = (r: Reservation): UIReservation => ({
+  id: r.id,
+  deskId: r.deskId,
+  deskLabel: r.deskLabel,
+  date: fmtDate(r.from),
+  time: `${fmtTime(r.from)}–${fmtTime(r.to)}`,
+});
+
 const Index = () => {
-  const [desks, setDesks] = useState(initialDesks);
-  const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [floor, setFloor] = useState<FloorWithDesks | null>(null);
   const [reservations, setReservations] = useState<Reservation[]>([]);
+  const [analytics, setAnalytics] = useState<AnalyticsSummary | null>(null);
+  const [selectedId, setSelectedId] = useState<string | null>(null);
   const [view, setView] = useState<View>("map");
+  const [loading, setLoading] = useState(true);
+  const [reserving, setReserving] = useState(false);
+  const [autoPicking, setAutoPicking] = useState(false);
+  const [releasingId, setReleasingId] = useState<string | null>(null);
 
-  const selected = useMemo(() => desks.find((d) => d.id === selectedId) ?? null, [desks, selectedId]);
+  // Initial load: pick first floor, fetch its desks + my active reservations + analytics.
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        setLoading(true);
+        const floors = await api.listFloors();
+        if (!floors.length) {
+          if (!cancelled) toast.error("На сервере нет ни одного этажа");
+          return;
+        }
+        const [floorData, myRes, summary] = await Promise.all([
+          api.getFloor(floors[0].id),
+          api.listReservations({ status: "active" }).catch(() => [] as Reservation[]),
+          api.analyticsSummary({ floorId: floors[0].id }).catch(() => null),
+        ]);
+        if (cancelled) return;
+        setFloor(floorData);
+        setReservations(myRes);
+        setAnalytics(summary);
+      } catch (err) {
+        if (!cancelled) {
+          const msg = err instanceof ApiError ? err.message : "Не удалось загрузить данные";
+          toast.error(msg);
+        }
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
-  const reserve = (id: string) => {
-    const desk = desks.find((d) => d.id === id);
-    if (!desk || desk.status === "occupied") return;
-    setDesks((prev) => prev.map((d) => (d.id === id ? { ...d, status: "mine" } : d)));
-    setReservations((prev) => [
-      ...prev,
-      { id: crypto.randomUUID(), deskId: id, deskLabel: desk.label, date: "Сегодня", time: "09:00–18:00" },
-    ]);
-    setSelectedId(null);
-  };
+  // Map API desks → UI desks, layering in runtime status from my reservations.
+  const uiDesks: UIDesk[] = useMemo(() => {
+    if (!floor) return [];
+    const myDeskIds = new Set(reservations.filter((r) => r.status === "active").map((r) => r.deskId));
+    return floor.desks.map((d) => {
+      let status: UIDeskStatus;
+      if (d.status === "disabled") status = "disabled";
+      else if (myDeskIds.has(d.id)) status = "mine";
+      else status = "available";
+      return {
+        id: d.id,
+        label: d.label,
+        x: d.position.x,
+        y: d.position.y,
+        status,
+        features: d.features,
+      };
+    });
+  }, [floor, reservations]);
 
-  const release = (resId: string) => {
-    const r = reservations.find((x) => x.id === resId);
-    if (!r) return;
-    setReservations((prev) => prev.filter((x) => x.id !== resId));
-    setDesks((prev) => prev.map((d) => (d.id === r.deskId ? { ...d, status: "available" } : d)));
-  };
+  const selected = useMemo(() => uiDesks.find((d) => d.id === selectedId) ?? null, [uiDesks, selectedId]);
 
-  const autoPick = () => {
-    const free = desks.filter((d) => d.status === "available");
-    if (!free.length) return toast.error("Свободных мест нет");
-    const pick = free[Math.floor(Math.random() * free.length)];
-    setSelectedId(pick.id);
-    toast.success(`AI подобрал место ${pick.label}`, { description: "Лучшее по фильтрам и загрузке" });
-  };
+  const totals = useMemo(() => {
+    const total = uiDesks.length;
+    const reserved = reservations.filter((r) => r.status === "active").length;
+    const free = uiDesks.filter((d) => d.status === "available").length;
+    return { total, reserved, free };
+  }, [uiDesks, reservations]);
+
+  const reserve = useCallback(
+    async (id: string) => {
+      const desk = uiDesks.find((d) => d.id === id);
+      if (!desk) return;
+      const { from, to } = buildTodayRange();
+      setReserving(true);
+      try {
+        const res = await api.createReservation({ deskId: id, from, to });
+        setReservations((prev) => [res, ...prev]);
+        setSelectedId(null);
+        toast.success(`Место ${desk.label} забронировано`);
+      } catch (err) {
+        const msg = err instanceof ApiError ? err.message : "Не удалось забронировать";
+        toast.error(msg);
+      } finally {
+        setReserving(false);
+      }
+    },
+    [uiDesks],
+  );
+
+  const release = useCallback(
+    async (resId: string) => {
+      const r = reservations.find((x) => x.id === resId);
+      if (!r) return;
+      setReleasingId(resId);
+      try {
+        await api.cancelReservation(resId);
+        setReservations((prev) => prev.filter((x) => x.id !== resId));
+        toast(`Место ${r.deskLabel} освобождено`);
+      } catch (err) {
+        const msg = err instanceof ApiError ? err.message : "Не удалось освободить место";
+        toast.error(msg);
+      } finally {
+        setReleasingId(null);
+      }
+    },
+    [reservations],
+  );
+
+  const autoPick = useCallback(async () => {
+    if (!floor) return;
+    const { from, to } = buildTodayRange();
+    setAutoPicking(true);
+    try {
+      const res = await api.autoReserve({ from, to, floorId: floor.id });
+      setReservations((prev) => [res, ...prev]);
+      setSelectedId(res.deskId);
+      toast.success(`Сервер подобрал место ${res.deskLabel}`);
+    } catch (err) {
+      const msg = err instanceof ApiError ? err.message : "Свободных мест нет";
+      toast.error(msg);
+    } finally {
+      setAutoPicking(false);
+    }
+  }, [floor]);
+
+  const uiReservations = useMemo(() => reservations.map(reservationToUI), [reservations]);
 
   return (
     <div className="min-h-screen pb-12">
@@ -77,19 +182,19 @@ const Index = () => {
         <section className="flex flex-col lg:flex-row lg:items-end justify-between gap-4">
           <div>
             <p className="text-xs uppercase tracking-[0.3em] text-muted-foreground mb-2">
-              Гибкие рабочие места · Live
+              {floor ? `${floor.name} · Live` : "Гибкие рабочие места · Live"}
             </p>
             <h1 className="font-display text-4xl lg:text-5xl font-semibold leading-[1.1] tracking-tight">
               Найди своё <span className="text-primary">идеальное</span><br />место за секунды
             </h1>
           </div>
           <p className="text-sm text-muted-foreground max-w-sm">
-            Бронируйте стол вручную на карте офиса или доверьте выбор AI — он учтёт ваши предпочтения,
-            ближайших коллег и загрузку зон.
+            Бронируйте стол вручную на карте офиса или доверьте выбор серверу — он подберёт первое
+            подходящее место по вашим фильтрам.
           </p>
         </section>
 
-        <StatsBar />
+        <StatsBar free={totals.free} total={totals.total} reserved={totals.reserved} occupancy={analytics?.averageOccupancy} />
 
         <AnimatePresence mode="wait">
           {view === "map" && (
@@ -101,10 +206,22 @@ const Index = () => {
               transition={{ duration: 0.3 }}
               className="grid lg:grid-cols-[1fr_400px] gap-6"
             >
-              <FloorPlan desks={desks} selectedId={selectedId} onSelect={setSelectedId} />
+              {loading ? (
+                <div className="glass-strong rounded-3xl aspect-[16/10] grid place-items-center text-sm text-muted-foreground">
+                  Загружаем план этажа…
+                </div>
+              ) : (
+                <FloorPlan desks={uiDesks} selectedId={selectedId} onSelect={setSelectedId} />
+              )}
               <div className="space-y-6">
-                <BookingPanel desk={selected} onReserve={reserve} onAutoPick={autoPick} />
-                <MyReservations reservations={reservations} onRelease={release} />
+                <BookingPanel
+                  desk={selected}
+                  onReserve={reserve}
+                  onAutoPick={autoPick}
+                  reserving={reserving}
+                  autoPicking={autoPicking}
+                />
+                <MyReservations reservations={uiReservations} onRelease={release} releasingId={releasingId} />
               </div>
             </motion.section>
           )}
@@ -117,7 +234,7 @@ const Index = () => {
               transition={{ duration: 0.3 }}
               className="max-w-2xl mx-auto w-full"
             >
-              <MyReservations reservations={reservations} onRelease={release} />
+              <MyReservations reservations={uiReservations} onRelease={release} releasingId={releasingId} />
             </motion.section>
           )}
           {view === "analytics" && (
@@ -130,12 +247,12 @@ const Index = () => {
               className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4"
             >
               {[
-                { l: "Средняя загрузка", v: "68%", d: "за неделю" },
-                { l: "Пиковый день", v: "Вторник", d: "92% мест занято" },
-                { l: "Любимая зона", v: "Open Space A", d: "по броням команды" },
-                { l: "Авто-подбор", v: "73%", d: "успешных совпадений" },
-                { l: "Среднее время", v: "4.2ч", d: "присутствия в офисе" },
-                { l: "Освобождений", v: "18", d: "досрочных за неделю" },
+                { l: "Средняя загрузка", v: analytics?.averageOccupancy !== undefined ? `${Math.round(analytics.averageOccupancy * 100)}%` : "—", d: "за период" },
+                { l: "Пиковый день", v: analytics?.peakDay ?? "—", d: analytics?.peakOccupancy !== undefined ? `${Math.round(analytics.peakOccupancy * 100)}% мест занято` : "—" },
+                { l: "Любимая зона", v: analytics?.topZone?.name ?? "—", d: "по броням команды" },
+                { l: "Авто-подбор", v: analytics?.autoPickRatio !== undefined ? `${Math.round(analytics.autoPickRatio * 100)}%` : "—", d: "доля автоматических броней" },
+                { l: "Всего бронирований", v: analytics?.totalReservations ?? "—", d: "за период" },
+                { l: "Освобождений", v: analytics?.earlyReleases ?? "—", d: "досрочных за период" },
               ].map((c) => (
                 <div key={c.l} className="glass-strong rounded-3xl p-5">
                   <p className="text-[10px] uppercase tracking-widest text-muted-foreground">{c.l}</p>
