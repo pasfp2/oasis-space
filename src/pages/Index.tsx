@@ -265,7 +265,7 @@ const Index = () => {
         </AnimatePresence>
 
         <footer className="pt-8 text-center text-xs text-muted-foreground">
-          FlowDesk · Powered by Liquid Glass UI
+          FlowDesk · Manufactory Aero edition
         </footer>
       </main>
     </div>
