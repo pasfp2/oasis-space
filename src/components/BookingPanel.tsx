@@ -1,17 +1,18 @@
 import { GlassCard } from "./GlassCard";
 import { Desk } from "./FloorPlan";
 import { Button } from "./ui/button";
-import { Calendar, Clock, MapPin, Sparkles, Zap, X } from "lucide-react";
+import { Calendar, Clock, MapPin, Sparkles, Zap, X, Loader2 } from "lucide-react";
 import { useState } from "react";
-import { toast } from "sonner";
 
 interface Props {
   desk: Desk | null;
-  onReserve: (id: string, mode: "manual" | "auto") => void;
-  onAutoPick: () => void;
+  onReserve: (id: string) => void | Promise<void>;
+  onAutoPick: () => void | Promise<void>;
+  reserving?: boolean;
+  autoPicking?: boolean;
 }
 
-export const BookingPanel = ({ desk, onReserve, onAutoPick }: Props) => {
+export const BookingPanel = ({ desk, onReserve, onAutoPick, reserving, autoPicking }: Props) => {
   const [time, setTime] = useState("full");
 
   return (
@@ -29,16 +30,17 @@ export const BookingPanel = ({ desk, onReserve, onAutoPick }: Props) => {
 
       {/* Auto pick CTA */}
       <button
-        onClick={onAutoPick}
-        className="group rounded-2xl glass glass-hover px-5 py-4 flex items-center justify-between border border-border"
+        onClick={() => onAutoPick()}
+        disabled={autoPicking}
+        className="group rounded-2xl glass glass-hover px-5 py-4 flex items-center justify-between border border-border disabled:opacity-60"
       >
         <div className="flex items-center gap-3">
           <div className="h-9 w-9 rounded-xl bg-primary/15 border border-primary/30 grid place-items-center">
-            <Sparkles className="h-4 w-4 text-primary" />
+            {autoPicking ? <Loader2 className="h-4 w-4 text-primary animate-spin" /> : <Sparkles className="h-4 w-4 text-primary" />}
           </div>
           <div className="text-left">
             <p className="font-medium text-sm">Подобрать автоматически</p>
-            <p className="text-xs text-muted-foreground">AI выберет лучшее место</p>
+            <p className="text-xs text-muted-foreground">Сервер подберёт первое подходящее</p>
           </div>
         </div>
         <Zap className="h-4 w-4 text-muted-foreground group-hover:text-primary transition-colors" />
@@ -82,13 +84,15 @@ export const BookingPanel = ({ desk, onReserve, onAutoPick }: Props) => {
           </div>
 
           <Button
-            onClick={() => {
-              onReserve(desk.id, "manual");
-              toast.success(`Место ${desk.label} забронировано`);
-            }}
+            onClick={() => onReserve(desk.id)}
+            disabled={reserving}
             className="w-full h-11 rounded-xl bg-primary hover:bg-primary/90 text-primary-foreground font-medium border-0"
           >
-            Забронировать {desk.label}
+            {reserving ? (
+              <span className="flex items-center gap-2"><Loader2 className="h-4 w-4 animate-spin" /> Бронируем…</span>
+            ) : (
+              <>Забронировать {desk.label}</>
+            )}
           </Button>
         </div>
       ) : (
@@ -105,10 +109,11 @@ export const BookingPanel = ({ desk, onReserve, onAutoPick }: Props) => {
 
 interface MyReservationsProps {
   reservations: { id: string; deskLabel: string; date: string; time: string }[];
-  onRelease: (id: string) => void;
+  onRelease: (id: string) => void | Promise<void>;
+  releasingId?: string | null;
 }
 
-export const MyReservations = ({ reservations, onRelease }: MyReservationsProps) => (
+export const MyReservations = ({ reservations, onRelease, releasingId }: MyReservationsProps) => (
   <GlassCard variant="strong" className="p-6">
       <div className="flex items-center justify-between mb-4">
       <h3 className="font-display text-base font-semibold">Мои резервации</h3>
@@ -130,14 +135,12 @@ export const MyReservations = ({ reservations, onRelease }: MyReservationsProps)
               </div>
             </div>
             <button
-              onClick={() => {
-                onRelease(r.id);
-                toast(`Место ${r.deskLabel} освобождено`);
-              }}
-              className="glass rounded-full p-1.5 hover:bg-destructive/20 hover:text-destructive transition-colors"
+              onClick={() => onRelease(r.id)}
+              disabled={releasingId === r.id}
+              className="glass rounded-full p-1.5 hover:bg-destructive/20 hover:text-destructive transition-colors disabled:opacity-50"
               aria-label="Освободить"
             >
-              <X className="h-3.5 w-3.5" />
+              {releasingId === r.id ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <X className="h-3.5 w-3.5" />}
             </button>
           </div>
         ))}
