@@ -37,8 +37,8 @@ const zoneTypeLabel: Record<Zone["type"], string> = {
 };
 
 export const FloorPlan = ({ desks, selectedId, onSelect, floorName, zones = [] }: FloorPlanProps) => {
-  const primaryZone = zones[0];
   const meetingRooms = zones.filter((z) => z.type === "meeting_room");
+  const primaryZone = zones.find((z) => z.type !== "meeting_room");
   return (
     <div className="relative w-full aspect-[16/10] rounded-3xl overflow-hidden glass-strong p-6">
       {/* Soft ambient blobs */}
