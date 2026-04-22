@@ -38,7 +38,7 @@ const zoneTypeLabel: Record<Zone["type"], string> = {
 
 export const FloorPlan = ({ desks, selectedId, onSelect, floorName, zones = [] }: FloorPlanProps) => {
   const primaryZone = zones[0];
-  const meetingRoom = zones.find((z) => z.type === "meeting_room");
+  const meetingRooms = zones.filter((z) => z.type === "meeting_room");
   return (
     <div className="relative w-full aspect-[16/10] rounded-3xl overflow-hidden glass-strong p-6">
       {/* Soft ambient blobs */}
@@ -64,18 +64,18 @@ export const FloorPlan = ({ desks, selectedId, onSelect, floorName, zones = [] }
         <span className="text-muted-foreground">{floorName ?? "Этаж"}</span>
       </div>
 
-      {/* Meeting room block — only if API reports one */}
-      {meetingRoom && (
-        <div
-          className="absolute rounded-2xl border-2 border-dashed border-border bg-white/40 backdrop-blur-sm"
-          style={{ left: "5%", top: "55%", width: "25%", height: "35%" }}
-        >
-          <div className="p-3">
-            <p className="text-[10px] uppercase tracking-widest text-muted-foreground">
-              {zoneTypeLabel[meetingRoom.type]}
-            </p>
-            <p className="font-display text-sm">{meetingRoom.name}</p>
-          </div>
+      {/* Meeting rooms — chips in the bottom-left, since API has no geometry */}
+      {meetingRooms.length > 0 && (
+        <div className="absolute bottom-16 left-6 flex flex-wrap gap-2 max-w-[60%]">
+          {meetingRooms.map((room) => (
+            <div key={room.id} className="glass rounded-full px-3 py-1.5 flex items-center gap-2 text-xs">
+              <span className="h-1.5 w-1.5 rounded-full bg-accent" />
+              <span className="text-[10px] uppercase tracking-widest text-muted-foreground">
+                {zoneTypeLabel[room.type]}
+              </span>
+              <span className="font-display text-foreground">{room.name}</span>
+            </div>
+          ))}
         </div>
       )}
 
