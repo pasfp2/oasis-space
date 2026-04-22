@@ -1,7 +1,8 @@
 import { cn } from "@/lib/utils";
-import { Monitor, Users, Wifi, Coffee } from "lucide-react";
+import { Coffee } from "lucide-react";
+import type { DeskFeature } from "@/lib/api/types";
 
-export type DeskStatus = "available" | "reserved" | "occupied" | "mine";
+export type DeskStatus = "available" | "reserved" | "occupied" | "mine" | "disabled";
 
 export interface Desk {
   id: string;
@@ -9,7 +10,7 @@ export interface Desk {
   x: number;
   y: number;
   status: DeskStatus;
-  features: ("monitor" | "wifi" | "quiet")[];
+  features: DeskFeature[];
 }
 
 interface FloorPlanProps {
@@ -23,6 +24,7 @@ const statusStyles: Record<DeskStatus, string> = {
   reserved: "bg-warning/15 border-warning/40 text-warning/90",
   occupied: "bg-muted border-border/60 text-muted-foreground/50 cursor-not-allowed",
   mine: "bg-primary text-primary-foreground border-primary shadow-lg",
+  disabled: "bg-muted/50 border-border/40 text-muted-foreground/40 cursor-not-allowed",
 };
 
 export const FloorPlan = ({ desks, selectedId, onSelect }: FloorPlanProps) => {
@@ -62,7 +64,7 @@ export const FloorPlan = ({ desks, selectedId, onSelect }: FloorPlanProps) => {
       {/* Desks */}
       {desks.map((desk) => {
         const isSelected = selectedId === desk.id;
-        const disabled = desk.status === "occupied";
+        const disabled = desk.status === "occupied" || desk.status === "disabled";
         return (
           <button
             key={desk.id}
